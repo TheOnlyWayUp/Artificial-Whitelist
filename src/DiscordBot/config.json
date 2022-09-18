@@ -1,0 +1,18 @@
+{
+    "bot": {
+        "token": "",
+        "guilds": [],
+        "moderator_role_id": 0
+    },
+    "api": {
+        "bind": {
+            "address": "",
+            "port": 0
+        },
+        "authorization": "",
+        "data": {
+            "players": [],
+            "mode": ""
+        }
+    }
+}
