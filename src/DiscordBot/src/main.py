@@ -16,8 +16,6 @@ def run_bot():
 
 
 if __name__ == "__main__":
-    threads = [Thread(target=run_api), Thread(target=run_bot)]
-    for thread in threads:
-        thread.start()
-    for thread in threads:
-        thread.join()
+    api_thread = Thread(target=run_api)
+    api_thread.start()
+    run_bot()

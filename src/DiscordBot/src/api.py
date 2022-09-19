@@ -25,14 +25,14 @@ def get_mode():
     return get_data().get("mode", "")
 
 
-@app.set("/players/{players}")
+@app.get("/players/{players}")
 def set_players(players: str):
     data = get_data()
     data["players"] = players.split(",")
     set_data(**data)
 
 
-@app.set("/mode/{mode}")
+@app.get("/mode/{mode}")
 def set_mode(mode: str):
     data = get_data()
     data["mode"] = mode
