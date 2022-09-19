@@ -23,7 +23,7 @@ def set_data(players: List, mode: str):
     with open(DISCORD_BOT_CONFIG_PATH, "r") as config_file:
         config = json.load(config_file)
         config["api"]["data"] = {
-            "players": [player.lower() for player in players],
+            "players": list(set([player.lower() for player in players])),
             "mode": mode.lower(),
         }
     with open(DISCORD_BOT_CONFIG_PATH, "w") as config_file:

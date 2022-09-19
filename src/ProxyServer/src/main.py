@@ -75,6 +75,7 @@ def handle_connection(client: socket.socket, caddr: Tuple):
     fill_in_on_leave = False
     completed_check = False
     motd_sent = False
+
     proxy_mode = get_proxy_mode()
     player_list = get_player_list()
 
@@ -217,7 +218,10 @@ if __name__ == "__main__":
     console.log("[App] - Starting")
 
     while True:
-        lner = listener.accept()
+        try:
+            lner = listener.accept()
+        except KeyboardInterrupt:
+            break
         log_connection(*lner)
 
         def run():
@@ -227,6 +231,7 @@ if __name__ == "__main__":
                 raise exc
 
         t = Thread(target=run)
+        t.setDaemon(True)
         t.start()
 
         try:

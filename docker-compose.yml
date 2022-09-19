@@ -1,4 +1,5 @@
 services:
+
   discord_bot:
     build:
       context: ./src/DiscordBot
@@ -6,11 +7,13 @@ services:
       - ./.env.dev
     volumes:
       - discord_bot_config:/db
+
   player_api:
     build:
       context: ./src/PlayerAPI
     env_file:
       - ./.env.dev
+
   stats_api:
     build:
       context: ./src/StatsAPI
@@ -18,17 +21,22 @@ services:
       - ./.env.dev
     volumes:
       - stats_db:/db
+
   proxy_server:
     build:
       context: ./src/ProxyServer
     env_file:
       - ./.env.dev
     ports:
-      - "5000:8765"
+      - "8765:5000"
     depends_on:
       - player_api
       - stats_api
       - discord_bot
+    environment:
+      DISCORD_BOT_URL: http://discord_bot:5003
+      STATS_API_URL: http://stats_api:5002
+      PLAYER_API_URL: http://player_api:5001
 
 volumes:
   stats_db:

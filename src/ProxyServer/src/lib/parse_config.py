@@ -18,9 +18,9 @@ BIND_PORT = _PROXY_CONFIG["bind"]["port"]
 SERVER_ADDRESS = _PROXY_CONFIG["proxy_to"]["address"]
 SERVER_PORT = _PROXY_CONFIG["proxy_to"]["port"]
 
-PLAYER_API_BASE_URL = _PROXY_CONFIG["player_api_url"]
-STATS_API_BASE_URL = _PROXY_CONFIG["stats_api_url"]
-CONFG_API_BASE_URL = _PROXY_CONFIG["config_api_url"]
+PLAYER_API_BASE_URL = os.environ["PLAYER_API_URL"]
+STATS_API_BASE_URL = os.environ["STATS_API_URL"]
+CONFG_API_BASE_URL = os.environ["DISCORD_BOT_URL"]
 API_AUTH_KEY = os.environ["API_AUTH_KEY"]
 
 headers = {"authorization": API_AUTH_KEY}
@@ -45,12 +45,11 @@ class ProxyModeEnum(Enum):
     blacklist = 2
 
 
-headers = {"authorization": API_AUTH_KEY}
-
-
 def get_proxy_mode():
     return requests.get(CONFG_API_BASE_URL + "/mode", headers=headers)
 
 
 def get_player_list():
-    return requests.get(CONFG_API_BASE_URL + "/players", headers=headers)
+    return requests.get(CONFG_API_BASE_URL + "/players", headers=headers).text.split(
+        ","
+    )

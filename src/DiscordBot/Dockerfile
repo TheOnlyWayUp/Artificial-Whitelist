@@ -10,4 +10,6 @@ ENV DISCORD_BOT_CONFIG_PATH=/db/config.json
 WORKDIR /src
 COPY src .
 
+EXPOSE 5003
+
 CMD [ "python3", "main.py" ]
