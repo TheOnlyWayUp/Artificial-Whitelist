@@ -17,5 +17,6 @@ def run_bot():
 
 if __name__ == "__main__":
     api_thread = Thread(target=run_api)
+    api_thread.setDaemon(True)
     api_thread.start()
     run_bot()

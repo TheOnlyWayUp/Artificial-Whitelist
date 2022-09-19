@@ -30,6 +30,9 @@ app.use(function (req, res, next) {
 });
 // https://stackoverflow.com/a/46094495
 
+app.get("/maxlen/", (req, res) => {
+    res.status(200).send({ "MAX_SIZE": credentials.length })
+})
 
 app.get("/join_all/", (req, res) => {
     credentials.forEach(account => {

@@ -1,4 +1,4 @@
-import os, json, requests
+import os, json, requests, time
 from typing import cast, Dict
 from enum import Enum
 from mcstatus import JavaServer
@@ -23,9 +23,16 @@ STATS_API_BASE_URL = _PROXY_CONFIG["stats_api_url"]
 CONFG_API_BASE_URL = _PROXY_CONFIG["config_api_url"]
 API_AUTH_KEY = os.environ["API_AUTH_KEY"]
 
-MAX_CONTROLLED_PLAYERS = requests.get(PLAYER_API_BASE_URL + "/maxlen").json()[
-    "MAX_SIZE"
-]
+headers = {"authorization": API_AUTH_KEY}
+
+while True:
+    try:
+        MAX_CONTROLLED_PLAYERS = requests.get(
+            PLAYER_API_BASE_URL + "/maxlen", headers=headers
+        ).json()["MAX_SIZE"]
+        break
+    except:
+        time.sleep(5)
 
 MOTD = "LiveOverflow Proxy"
 SERVER_MOTD = cast(

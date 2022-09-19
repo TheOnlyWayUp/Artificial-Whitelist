@@ -4,6 +4,8 @@ services:
       context: ./src/DiscordBot
     env_file:
       - ./.env.dev
+    volumes:
+      - discord_bot_config:/db
   player_api:
     build:
       context: ./src/PlayerAPI
@@ -30,3 +32,4 @@ services:
 
 volumes:
   stats_db:
+  discord_bot_config:
