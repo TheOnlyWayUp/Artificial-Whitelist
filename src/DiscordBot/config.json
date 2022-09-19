@@ -2,7 +2,9 @@
     "bot": {
         "token": "",
         "guilds": [],
-        "moderator_role_id": 0
+        "moderator_roles": [
+            0
+        ]
     },
     "api": {
         "bind": {

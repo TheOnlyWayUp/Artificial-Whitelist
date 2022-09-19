@@ -20,8 +20,12 @@ def get_data():
 
 
 def set_data(players: List, mode: str):
-    with open(DISCORD_BOT_CONFIG_PATH, "r+") as config_file:
+    with open(DISCORD_BOT_CONFIG_PATH, "r") as config_file:
         config = json.load(config_file)
-        config["api"]["data"] = {"players": players, "mode": mode}
-        json.dump(config, config_file)
+        config["api"]["data"] = {
+            "players": [player.lower() for player in players],
+            "mode": mode.lower(),
+        }
+    with open(DISCORD_BOT_CONFIG_PATH, "w") as config_file:
+        json.dump(config, config_file, indent=4)
         API_CONFIG = config["api"]
