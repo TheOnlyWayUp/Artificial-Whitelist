@@ -1,0 +1,22 @@
+services:
+  discord_bot:
+    build: ./DiscordBot
+    env_file:
+      - ./.env.dev
+  player_api:
+    build: ./PlayerAPI
+    env_file:
+      - ./.env.dev
+  stats_api:
+    build: ./StatsAPI
+    env_file:
+      - ./.env.dev
+    volumes:
+      - stats_db:/db
+  proxy_server:
+    build: ./ProxyServer
+    env_file:
+      - ./.env.dev
+volumes:
+  stats_db:
+    external: True

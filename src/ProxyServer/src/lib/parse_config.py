@@ -21,7 +21,7 @@ SERVER_PORT = _PROXY_CONFIG["proxy_to"]["port"]
 PLAYER_API_BASE_URL = _PROXY_CONFIG["player_api_url"]
 STATS_API_BASE_URL = _PROXY_CONFIG["stats_api_url"]
 CONFG_API_BASE_URL = _PROXY_CONFIG["config_api_url"]
-API_AUTH_KEY = config["authorization"]
+API_AUTH_KEY = os.environ['API_AUTH_KEY']
 
 MAX_CONTROLLED_PLAYERS = requests.get(PLAYER_API_BASE_URL + "/maxlen").json()[
     "MAX_SIZE"

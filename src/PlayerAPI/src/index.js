@@ -8,7 +8,7 @@ const app = express();
 let HOST = config.server.address
 let PORT = config.server.port
 let EXPRESS_PORT = config.serve.port
-let EXPRESS_AUTH = config.authorization
+let EXPRESS_AUTH = process.env.API_AUTH_KEY
 
 let credentials = config.accounts
 let usernames_to_passwords = {}
