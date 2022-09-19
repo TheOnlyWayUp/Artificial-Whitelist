@@ -16,7 +16,7 @@ BIND_ADDRESS = config["bind"]["address"]
 BIND_PORT = config["bind"]["port"]
 
 DATABASE_PATH = config["db_file"]
-AUTHORIZATION = config["authorization"]
+AUTHORIZATION = os.environ["API_AUTH_KEY"]
 
 
 def check_auth(authorization: str = Header(...)):

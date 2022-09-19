@@ -3,7 +3,7 @@ from fastapi import FastAPI, Depends, Header
 from fastapi.exceptions import HTTPException
 from config import API_CONFIG, get_data, set_data
 
-AUTHORIZATION = os.environ['API_AUTH_KEY']
+AUTHORIZATION = os.environ["API_AUTH_KEY"]
 
 
 def check_auth(authorization: str = Header(...)):

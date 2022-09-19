@@ -99,6 +99,12 @@ app.get("/fill_in", (req, res) => {
     res.status(200).send({ "status": true, "data": { "username": username } })
 })
 
-app.listen(EXPRESS_PORT, () => {
+process.on('SIGTERM', () => {
+    console.log('SIGTERM received, shutting down...');
+    server.close()
+    // https://github.com/expressjs/express/issues/1366
+});
+
+var server = app.listen(EXPRESS_PORT, () => {
     console.log(`App listening on port ${EXPRESS_PORT}`);
 });

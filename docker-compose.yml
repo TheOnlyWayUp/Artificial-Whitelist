@@ -1,22 +1,32 @@
 services:
   discord_bot:
-    build: ./DiscordBot
+    build:
+      context: ./src/DiscordBot
     env_file:
       - ./.env.dev
   player_api:
-    build: ./PlayerAPI
+    build:
+      context: ./src/PlayerAPI
     env_file:
       - ./.env.dev
   stats_api:
-    build: ./StatsAPI
+    build:
+      context: ./src/StatsAPI
     env_file:
       - ./.env.dev
     volumes:
       - stats_db:/db
   proxy_server:
-    build: ./ProxyServer
+    build:
+      context: ./src/ProxyServer
     env_file:
       - ./.env.dev
+    ports:
+      - "5000:8765"
+    depends_on:
+      - player_api
+      - stats_api
+      - discord_bot
+
 volumes:
   stats_db:
-    external: True
