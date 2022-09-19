@@ -6,6 +6,5 @@
     "accounts": [],
     "serve": {
         "port": 0
-    },
-    "authorization": ""
+    }
 }

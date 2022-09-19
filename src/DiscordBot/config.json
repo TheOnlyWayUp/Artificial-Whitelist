@@ -2,16 +2,13 @@
     "bot": {
         "token": "",
         "guilds": [],
-        "moderator_roles": [
-            0
-        ]
+        "moderator_roles": []
     },
     "api": {
         "bind": {
             "address": "",
             "port": 0
         },
-        "authorization": "",
         "data": {
             "players": [],
             "mode": ""

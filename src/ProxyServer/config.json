@@ -7,11 +7,6 @@
         "proxy_to": {
             "address": "",
             "port": 0
-        },
-        "player_api_url": "",
-        "stats_api_url": "",
-        "mode": "",
-        "player_list": ""
-    },
-    "authorization": ""
+        }
+    }
 }
