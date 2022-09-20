@@ -1,4 +1,4 @@
-import os, json
+import os, json, aiohttp
 from typing import List
 
 DISCORD_BOT_CONFIG_PATH = os.getenv("DISCORD_BOT_CONFIG_PATH")
@@ -10,6 +10,28 @@ with open(DISCORD_BOT_CONFIG_PATH) as config_file:
 
 BOT_CONFIG = config["bot"]
 API_CONFIG = config["api"]
+
+USERNAME_TO_UUID_URL = "https://api.mojang.com/users/profiles/minecraft/{}"
+UUID_TO_USERNAME_URL = "https://sessionserver.mojang.com/session/minecraft/profile/{}"
+
+
+async def convert_username_to_uuid(username: str):
+    try:
+        async with aiohttp.ClientSession(
+            timeout=aiohttp.ClientTimeout(total=10)
+        ) as session:
+            async with session.get(USERNAME_TO_UUID_URL.format(username)) as response:
+                data = await response.json()
+                return data["id"]
+    except:
+        return None
+
+
+async def convert_uuid_to_username(uuid: str):
+    async with aiohttp.ClientSession() as session:
+        async with session.get(UUID_TO_USERNAME_URL.format(uuid)) as response:
+            data = await response.json()
+            return data.get("name", "").lower()
 
 
 def get_data():

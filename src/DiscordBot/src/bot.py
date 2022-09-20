@@ -1,6 +1,13 @@
 import disnake
 from disnake.ext import commands, tasks
-from config import BOT_CONFIG, get_data, set_data
+from config import (
+    BOT_CONFIG,
+    USERNAME_TO_UUID_URL,
+    get_data,
+    set_data,
+    convert_username_to_uuid,
+    convert_uuid_to_username,
+)
 from typing import cast
 
 bot = commands.InteractionBot(test_guilds=BOT_CONFIG["guilds"])
@@ -63,26 +70,30 @@ async def add_player_to_playerlist(
         description="Username of the Player", min_length=3, max_length=16
     ),
 ):
-    username = username.lower()
+    uuid = await convert_username_to_uuid(username)
+    if not uuid:
+        return await interaction.send(
+            embed=disnake.Embed(
+                title="Error",
+                description="Username is invalid.",
+                color=disnake.Color.dark_red(),
+            ),
+            ephemeral=True,
+        )
 
     data = get_data()
-    data["players"].append(username)
-    PLAYER_LIST.append(username)
+    data["players"].append(uuid)
+    PLAYER_LIST.append(await convert_uuid_to_username(uuid))
     set_data(**data)
 
     return await interaction.send(
         embed=disnake.Embed(
             title="Updated",
-            description="Players on the list are -\n{}".format(
-                ", ".join(data["players"])
-            ),
+            description="Players on the list are -\n{}".format(", ".join(PLAYER_LIST)),
             color=disnake.Color.dark_green(),
-        ).set_footer(text="Proxy Mode - {}".format(data["mode"])),
+        ).set_footer(text="Proxy Mode - {} | UUID - {}".format(data["mode"], uuid)),
         ephemeral=True,
     )
-
-
-PLAYER_LIST = get_data()["players"]
 
 
 async def autocomplete_playerlist(
@@ -144,7 +155,9 @@ async def view_playerlist(interaction: disnake.ApplicationCommandInteraction):
         embed=disnake.Embed(
             title="Player List",
             description="Players on the list are -\n{}".format(
-                ", ".join(data["players"])
+                ", ".join(
+                    [await convert_uuid_to_username(uuid) for uuid in data["players"]]
+                )
             ),
             color=disnake.Color.og_blurple(),
         ).set_footer(text="Proxy Mode - {}".format(data["mode"])),
@@ -220,7 +233,9 @@ async def change_proxy_mode(
 @tasks.loop(seconds=30)
 async def update_cached_playerlist():
     global PLAYER_LIST
-    PLAYER_LIST = get_data()["players"]
+    PLAYER_LIST = [
+        await convert_uuid_to_username(uuid) for uuid in get_data()["players"]
+    ]
 
 
 # --- #
@@ -228,11 +243,15 @@ async def update_cached_playerlist():
 
 @bot.event
 async def on_ready():
+    global PLAYER_LIST
     print(
         "Logged in as {} and in {} guild{}.".format(
             bot.user, len(bot.guilds), "" if len(bot.guilds) == 1 else "s"
         )
     )
+    PLAYER_LIST = [
+        await convert_uuid_to_username(uuid) for uuid in get_data()["players"]
+    ]
     update_cached_playerlist.start()
 
 

@@ -18,7 +18,7 @@ app = FastAPI(dependencies=[Depends(check_auth)])
 
 @app.get("/players")
 def get_players():
-    return ",".join(get_data().get("players", []))
+    return get_data().get("players", [])
 
 
 @app.get("/mode")

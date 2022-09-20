@@ -23,6 +23,9 @@ STATS_API_BASE_URL = os.environ["STATS_API_URL"]
 CONFG_API_BASE_URL = os.environ["DISCORD_BOT_URL"]
 API_AUTH_KEY = os.environ["API_AUTH_KEY"]
 
+UUID_TO_USERNAME_URL = "https://sessionserver.mojang.com/session/minecraft/profile/{}"
+USERNAME_TO_UUID_URL = "https://api.mojang.com/users/profiles/minecraft/{}"
+
 headers = {"authorization": API_AUTH_KEY}
 
 # while True:
@@ -53,10 +56,15 @@ def get_proxy_mode():
     )
 
 
+def convert_uuid_to_username(uuid: str):
+    resp = requests.get(UUID_TO_USERNAME_URL.format(uuid))
+    return resp.json().get("name", None)
+
+
+def convert_username_to_uuid(username: str):
+    resp = requests.get(USERNAME_TO_UUID_URL.format(username))
+    return resp.json().get("id", None)
+
+
 def get_player_list():
-    return [
-        player.replace('"', "")
-        for player in requests.get(
-            CONFG_API_BASE_URL + "/players", headers=headers
-        ).text.split(",")
-    ]
+    return requests.get(CONFG_API_BASE_URL + "/players", headers=headers).json()

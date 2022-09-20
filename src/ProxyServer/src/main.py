@@ -23,6 +23,8 @@ from lib.parse_config import (
     # Proxy Configuration Data
     get_proxy_mode,
     get_player_list,
+    convert_uuid_to_username,
+    convert_username_to_uuid,
 )
 from lib.api_handler import APIHandler
 from lib.parse_packet import (
@@ -78,7 +80,7 @@ def handle_connection(client: socket.socket, caddr: Tuple):
     motd_sent = False
 
     proxy_mode = get_proxy_mode()
-    player_list = get_player_list()
+    uuid_list = get_player_list()
 
     while running:
         try:
@@ -92,14 +94,20 @@ def handle_connection(client: socket.socket, caddr: Tuple):
                 if not completed_check:
                     if check_if_packet_c2s_encryption_response(buf):
                         # If encryption has started
+                        encryption_started = True
 
                         if username:
+                            uuid = convert_username_to_uuid(username)
+                            if not uuid:
+                                running = False
+                                continue
+
                             log_player_connection(username, caddr)
                             # if the username has been grabbed
                             player_in_list = False
 
-                            for player in player_list:
-                                if player == username.lower():
+                            for _uuid in uuid_list:
+                                if uuid == _uuid:
                                     player_in_list = True
                                     break
 
