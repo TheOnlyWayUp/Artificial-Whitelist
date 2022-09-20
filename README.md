@@ -12,3 +12,6 @@ User joins the Proxy -> Proxy stores their Username -> Forwards Packets -> Proxy
 
 Simply Put,
 ![Image describing join process (simplified)](https://i.imgur.com/u1mqq7s.png)
+
+Flow
+![Flowchart describing what happens during the lifecycle of a connection.](LO-Proxy-Flow.svg)
