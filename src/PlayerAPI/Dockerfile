@@ -22,6 +22,4 @@ ENV NODE_ENV=production
 WORKDIR /src
 COPY src .
 
-EXPOSE 5001
-
 CMD [ "node", "index.js" ]

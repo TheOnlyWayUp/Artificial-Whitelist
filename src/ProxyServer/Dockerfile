@@ -7,6 +7,4 @@ ENV PROXY_CONFIG_PATH=/config.json
 WORKDIR /src
 COPY src .
 
-EXPOSE 5000
-
-CMD [ "python3", "main.py" ]
+CMD [ "python3", "main.py"]

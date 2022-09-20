@@ -1,5 +1,6 @@
 import socket, select, time, requests
 from threading import Thread
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Dict, List, Tuple, Union, cast
 from rich.console import Console
 from mcstatus import JavaServer
@@ -17,7 +18,7 @@ from lib.parse_config import (
     STATS_API_BASE_URL,
     API_AUTH_KEY,
     # Proxy MOTD Data
-    MAX_CONTROLLED_PLAYERS,
+    # MAX_CONTROLLED_PLAYERS,
     MOTD,
     # Proxy Configuration Data
     get_proxy_mode,
@@ -87,7 +88,6 @@ def handle_connection(client: socket.socket, caddr: Tuple):
                 buf = client.recv(32767)
                 if len(buf) == 0:
                     running = False
-                console.log("C2S - {}".format([c for c in buf][:10]))
 
                 if not completed_check:
                     if check_if_packet_c2s_encryption_response(buf):
@@ -99,19 +99,16 @@ def handle_connection(client: socket.socket, caddr: Tuple):
                             player_in_list = False
 
                             for player in player_list:
-                                if player in username.lower():
-                                    console.log("player in list")
+                                if player == username.lower():
                                     player_in_list = True
                                     break
 
                             if proxy_mode == "blacklist" and player_in_list:
                                 # if the user is blacklisted
-                                console.log("user is blacklisted")
                                 running = False
 
                             elif proxy_mode == "whitelist" and player_in_list:
                                 # if the user is whitelisted
-                                console.log("user is whitelisted")
                                 API_Handler.sit_out(
                                     username, CONNECTED_PLAYERS[username]
                                 )
@@ -120,12 +117,10 @@ def handle_connection(client: socket.socket, caddr: Tuple):
 
                             elif proxy_mode == "whitelist" and not player_in_list:
                                 # if the user is not whitelisted
-                                console.log("user is not whitelisted")
                                 running = False
 
                             elif proxy_mode == "blacklist" and not player_in_list:
                                 # if user not blacklisted
-                                console.log("user is not blacklisted")
                                 API_Handler.sit_out(
                                     username, CONNECTED_PLAYERS[username]
                                 )
@@ -151,38 +146,7 @@ def handle_connection(client: socket.socket, caddr: Tuple):
                 buf = server.recv(32767)
                 if len(buf) == 0:
                     running = False
-                console.log("S2C - {}".format([c for c in buf][:10]))
 
-                # if not motd_sent:
-                #     if check_if_packet_motd_packet(buf, SERVER_MOTD):
-                #         console.log("Packet is motd")
-                #         # packet is an motd packet and needs to be manipulated before being passed on
-
-                #         motd = json.dumps(
-                #             {
-                #                 "description": {"text": MOTD},
-                #                 "players": {
-                #                     "max": MAX_CONTROLLED_PLAYERS,
-                #                     "online": len(list(CONNECTED_PLAYERS.keys())),
-                #                 },
-                #                 "version": {"name": "1.18.2", "protocol": 758},
-                #             },
-                #             separators=(",", ":"),
-                #         ).encode()
-
-                #         new_motd_packet = bytes.fromhex("00") + (
-                #             chr(len(motd)).encode() + motd
-                #         )
-                #         new_motd_packet = (
-                #             chr(len(new_motd_packet)).encode() + new_motd_packet
-                #         )
-                #         console.log(new_motd_packet)
-                #         console.log(buf)
-                #         client.send(new_motd_packet)
-                #         motd_sent = True
-
-                # else:
-                # client.send(buf)
                 client.send(buf)
 
         except Exception:
@@ -212,29 +176,43 @@ def handle_connection(client: socket.socket, caddr: Tuple):
 
 
 # --- Running --- #
+executor = ThreadPoolExecutor(
+    5
+)  # make this MAX_CONTROLLED_PLAYERS when it's no longer unused by motd
 
 if __name__ == "__main__":
+    import sys, signal
+
+    RUNNING = True
+
+    def signal_handler(signal, frame):
+        global RUNNING
+        RUNNING = False
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, signal_handler)
+
     join_all_resp = requests.get(PLAYER_API_BASE_URL + "/join_all")
     console.log("[App] - Starting")
 
-    while True:
-        try:
-            lner = listener.accept()
-        except KeyboardInterrupt:
-            break
+    while RUNNING:
+        lner = listener.accept()
         log_connection(*lner)
 
         def run():
             try:
+                console.log("Handling Connection")
                 handle_connection(*lner)
             except Exception as exc:
-                raise exc
+                console.log(exc)
+                ...
 
-        t = Thread(target=run)
-        t.setDaemon(True)
-        t.start()
+            try:
+                CONNECTIONS.pop(lner[1])
+            except:
+                ...
 
-        try:
-            CONNECTIONS.pop(lner[1])
-        except:
-            pass
+        future = executor.submit(run)
+        # t = Thread(target=run)
+        # t.setDaemon(True)
+        # t.start()

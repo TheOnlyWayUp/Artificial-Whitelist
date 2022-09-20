@@ -7,6 +7,4 @@ ENV STATS_API_CONFIG_PATH=/config.json
 WORKDIR /src
 COPY src .
 
-EXPOSE 5002
-
 CMD [ "python3", "main.py" ]

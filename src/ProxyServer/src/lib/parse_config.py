@@ -25,14 +25,14 @@ API_AUTH_KEY = os.environ["API_AUTH_KEY"]
 
 headers = {"authorization": API_AUTH_KEY}
 
-while True:
-    try:
-        MAX_CONTROLLED_PLAYERS = requests.get(
-            PLAYER_API_BASE_URL + "/maxlen", headers=headers
-        ).json()["MAX_SIZE"]
-        break
-    except:
-        time.sleep(5)
+# while True:
+#     try:
+#         MAX_CONTROLLED_PLAYERS = requests.get(
+#             PLAYER_API_BASE_URL + "/maxlen", headers=headers
+#         ).json()["MAX_SIZE"]
+#         break
+#     except:
+#         time.sleep(5)
 
 MOTD = "LiveOverflow Proxy"
 SERVER_MOTD = cast(
@@ -46,10 +46,17 @@ class ProxyModeEnum(Enum):
 
 
 def get_proxy_mode():
-    return requests.get(CONFG_API_BASE_URL + "/mode", headers=headers)
+    return (
+        requests.get(CONFG_API_BASE_URL + "/mode", headers=headers)
+        .text.replace('"', "")
+        .replace("'", "")
+    )
 
 
 def get_player_list():
-    return requests.get(CONFG_API_BASE_URL + "/players", headers=headers).text.split(
-        ","
-    )
+    return [
+        player.replace('"', "")
+        for player in requests.get(
+            CONFG_API_BASE_URL + "/players", headers=headers
+        ).text.split(",")
+    ]

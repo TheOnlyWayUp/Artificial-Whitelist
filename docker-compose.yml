@@ -1,27 +1,5 @@
 services:
 
-  discord_bot:
-    build:
-      context: ./src/DiscordBot
-    env_file:
-      - ./.env.dev
-    volumes:
-      - discord_bot_config:/db
-
-  player_api:
-    build:
-      context: ./src/PlayerAPI
-    env_file:
-      - ./.env.dev
-
-  stats_api:
-    build:
-      context: ./src/StatsAPI
-    env_file:
-      - ./.env.dev
-    volumes:
-      - stats_db:/db
-
   proxy_server:
     build:
       context: ./src/ProxyServer
@@ -37,6 +15,36 @@ services:
       DISCORD_BOT_URL: http://discord_bot:5003
       STATS_API_URL: http://stats_api:5002
       PLAYER_API_URL: http://player_api:5001
+    expose:
+      - 5000
+
+  player_api:
+    build:
+      context: ./src/PlayerAPI
+    env_file:
+      - ./.env.dev
+    expose:
+      - 5001
+
+  stats_api:
+    build:
+      context: ./src/StatsAPI
+    env_file:
+      - ./.env.dev
+    volumes:
+      - stats_db:/db
+    expose:
+      - 5002
+
+  discord_bot:
+    build:
+      context: ./src/DiscordBot
+    env_file:
+      - ./.env.dev
+    volumes:
+      - discord_bot_config:/db
+    expose:
+      - 5003
 
 volumes:
   stats_db:

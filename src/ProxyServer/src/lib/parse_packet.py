@@ -25,9 +25,7 @@ def parse_handshake_packet(packet: bytes):
         if watching_hostname is None:
             watching_username = True
 
-    try:
-        username.isalnum()
-    except:
+    if not username.isalnum():
         username = "".join(ch for ch in username if ch.isalnum())
 
     return {"username": username, "hostname": hostname}
