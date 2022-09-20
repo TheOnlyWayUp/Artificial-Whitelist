@@ -1,12 +1,15 @@
 import asyncio, socket, os, json
 from typing import List, Union
 
+from rich.console import Console
+
+console = Console()
+
 
 async def kick_player(player_uuid: str) -> Union[bool, None]:
     host, port = os.environ["PROXY_SERVER_API_URL"].split(":")
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(5)
-    sock.connect((host, port))
+    sock.connect((host, int(port)))
     data = {"auth": os.environ["API_AUTH_KEY"], "action": "kick", "uuid": player_uuid}
 
     loop = asyncio.get_event_loop()
@@ -20,8 +23,7 @@ async def kick_player(player_uuid: str) -> Union[bool, None]:
 async def get_players() -> Union[List[str], None]:
     host, port = os.environ["PROXY_SERVER_API_URL"].split(":")
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(5)
-    sock.connect((host, port))
+    sock.connect((host, int(port)))
     data = {"auth": os.environ["API_AUTH_KEY"], "action": "online"}
 
     loop = asyncio.get_event_loop()

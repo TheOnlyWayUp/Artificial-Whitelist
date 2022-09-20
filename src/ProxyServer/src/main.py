@@ -61,7 +61,7 @@ def log_player_connection(username: str, ip_address: Any):
 
 
 def kick_player(uuid: str):
-    return CONNECTIONS.pop(CONNECTED_PLAYERS.pop(uuid)).close()
+    return CONNECTIONS.pop(CONNECTED_PLAYERS.pop(uuid))
 
 
 # --- Binding to Serve Address --- #
@@ -92,15 +92,17 @@ def handle_connection(client: socket.socket, caddr: Tuple):
     completed_check = False
     motd_sent = False
 
-    proxy_mode = get_proxy_mode()
-    uuid_list = get_player_list()
-
     while running:
         try:
             rlist = select.select([client, server], [], [])[0]
 
+            if uuid:
+                if uuid not in CONNECTED_PLAYERS:
+                    running = False
+
             if client in rlist:
                 buf = client.recv(32767)
+
                 if len(buf) == 0:
                     running = False
 
@@ -108,6 +110,9 @@ def handle_connection(client: socket.socket, caddr: Tuple):
                     if check_if_packet_c2s_encryption_response(buf):
                         # If encryption has started
                         encryption_started = True
+
+                        proxy_mode = get_proxy_mode()
+                        uuid_list = get_player_list()
 
                         if username:
                             uuid = convert_username_to_uuid(username)
@@ -211,7 +216,7 @@ def handle_proxy_api():
                 try:
                     kick_player(data["uuid"])
                     sock.send(json.dumps({"success": True}).encode())
-                except:
+                except Exception as e:
                     sock.send(json.dumps({"success": False}).encode())
                     raise Exception("500")
             elif data["action"] == "online":
@@ -221,7 +226,7 @@ def handle_proxy_api():
                             {"success": True, "players": list(CONNECTED_PLAYERS.keys())}
                         ).encode()
                     )
-                except:
+                except Exception as e:
                     sock.send(json.dumps({"success": False, "players": []}).encode())
 
         except:

@@ -10,9 +10,11 @@ services:
     depends_on:
       - player_api
       - stats_api
+      - discord_bot
     environment:
       PLAYER_API_URL: http://player_api:5001
       STATS_API_URL: http://stats_api:5002
+      DISCORD_BOT_URL: http://discord_bot:5003
     expose:
       - 5000
       - 5004
@@ -44,10 +46,8 @@ services:
       - discord_bot_config:/db
     expose:
       - 5003
-    depends_on:
-      - proxy_server
     environment:
-      - PROXY_SERVER_API_URL: proxy_server:5004
+      PROXY_SERVER_API_URL: proxy_server:5004
 
 volumes:
   stats_db:
