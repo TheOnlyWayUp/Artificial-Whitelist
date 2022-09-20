@@ -8,5 +8,11 @@
             "address": "",
             "port": 0
         }
+    },
+    "api": {
+        "bind": {
+            "address": "",
+            "port": 0
+        }
     }
 }
