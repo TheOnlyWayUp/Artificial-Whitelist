@@ -1,3 +1,5 @@
+"""API to store and correlate Player Usernames and IP Addresses."""
+
 import os, json
 from typing import Dict, List
 from fastapi import FastAPI, Header, Depends
@@ -20,6 +22,7 @@ AUTHORIZATION = os.environ["API_AUTH_KEY"]
 
 
 def check_auth(authorization: str = Header(...)):
+    """Auth Dependency to check authorization header with auth key."""
     if authorization != AUTHORIZATION:
         raise HTTPException(status_code=403, detail="Forbidden")
 
@@ -30,6 +33,7 @@ try:
     with open(DATABASE_PATH, "r") as handler:
         ...
 except:
+    # create file if not exist
     with open(DATABASE_PATH, "w") as handler:
         json.dump({}, handler)
 
@@ -38,6 +42,7 @@ except:
 
 @app.get("/log/{username}/{address}")
 def log(username: str, address: str):
+    """Log a username joining from an IP Address, both arguments provided in the route."""
     with open(DATABASE_PATH) as handler:
         old_data: Dict[str, List[str]] = json.load(
             handler
@@ -53,6 +58,7 @@ def log(username: str, address: str):
 
 @app.get("/similar/{username}")
 def similar(username: str):
+    """Return a list of usernames of Minecraft Accounts that've joined from the same IP as the one provided in the route."""
     with open(DATABASE_PATH) as handler:
         old_data: Dict[str, List[str]] = json.load(
             handler

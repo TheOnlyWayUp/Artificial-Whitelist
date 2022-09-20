@@ -1,3 +1,5 @@
+"""Discord Bot to help view and modify configuration settings from Discord."""
+
 import disnake
 from disnake.ext import commands, tasks
 from config import (
@@ -17,7 +19,7 @@ bot = commands.InteractionBot(test_guilds=BOT_CONFIG["guilds"])
 
 
 @bot.slash_command_check
-async def moderator_check(interaction: disnake.ApplicationCommandInteraction):
+async def moderator_check(interaction: disnake.ApplicationCommandInteraction) -> bool:
     roles = [role.id for role in cast(disnake.Member, interaction.author).roles]
 
     allowed = False
@@ -44,6 +46,8 @@ async def moderator_check(interaction: disnake.ApplicationCommandInteraction):
 async def autocomplete_online_players(
     interaction: disnake.ApplicationCommandInteraction, string: str
 ):
+    """Autocomplete with all the online players on the server currently.
+    The online players are fetched through a socket connected to the server, not through the Status Protocol, this allows anonymous users to be fetched and displayed as well."""
     roles = [role.id for role in cast(disnake.Member, interaction.author).roles]
 
     allowed = False
@@ -57,7 +61,11 @@ async def autocomplete_online_players(
     players = await get_players()
     if not players:
         return []
-    return [await convert_uuid_to_username(uuid) for uuid in players]
+    return [
+        username
+        for username in [await convert_uuid_to_username(uuid) for uuid in players]
+        if string.lower() in username.lower()
+    ]
 
 
 @bot.slash_command(
@@ -72,6 +80,7 @@ async def kick_cmd(
         autocomplete=autocomplete_online_players,
     ),
 ):
+    """Kick a player from the server."""
     uuid = await convert_username_to_uuid(username)
     if not uuid:
         return await interaction.send(
@@ -107,6 +116,7 @@ async def kick_cmd(
 async def config_group(
     interaction: disnake.ApplicationCommandInteraction,
 ):
+    """Discord Command Group for all Configuration Commands"""
     ...
 
 
@@ -119,6 +129,7 @@ async def config_group(
 async def player_config_group(
     interaction: disnake.ApplicationCommandInteraction,
 ):
+    """Discord Subcommand Group for all Player Configuration Commands."""
     ...
 
 
@@ -132,6 +143,7 @@ async def add_player_to_playerlist(
         description="Username of the Player", min_length=3, max_length=16
     ),
 ):
+    """Adds a player to the Player List."""
     uuid = await convert_username_to_uuid(username)
     if not uuid:
         return await interaction.send(
@@ -161,6 +173,7 @@ async def add_player_to_playerlist(
 async def autocomplete_playerlist(
     interaction: disnake.ApplicationCommandInteraction, string: str
 ):
+    """Autocomplete with players from the Player List, updated every 30 seconds."""
     roles = [role.id for role in cast(disnake.Member, interaction.author).roles]
 
     allowed = False
@@ -187,6 +200,7 @@ async def remove_player_from_playerlist(
         autocomplete=autocomplete_playerlist,
     ),
 ):
+    """Remove a player from the playerlist. The outcome of this is decided by the ProxyMode, whitelist/blacklist."""
 
     data = get_data()
     try:
@@ -210,6 +224,7 @@ async def remove_player_from_playerlist(
 
 @player_config_group.sub_command(name="view", description="View players on the list.")
 async def view_playerlist(interaction: disnake.ApplicationCommandInteraction):
+    """Display all the players on the Player List."""
 
     data = get_data()
 
@@ -236,11 +251,13 @@ async def view_playerlist(interaction: disnake.ApplicationCommandInteraction):
 async def mode_config_group(
     interaction: disnake.ApplicationCommandInteraction,
 ):
+    """Discord Subcommand Group to display Proxy Mode Configuration Commands."""
     ...
 
 
 @mode_config_group.sub_command(name="view", description="View Proxy Mode.")
 async def view_proxy_mode(interaction: disnake.ApplicationCommandInteraction):
+    """View the current Proxy Mode."""
 
     data = get_data()
 
@@ -258,6 +275,7 @@ PROXY_MODE_OPTIONS = ["whitelist", "blacklist"]
 
 
 async def autocomplete_proxy_mode(inter, string: str):
+    """Autocomplete Proxy Mode with 'whitelist' or 'blacklist'."""
     return [
         proxy_mode
         for proxy_mode in PROXY_MODE_OPTIONS
@@ -273,6 +291,7 @@ async def change_proxy_mode(
     interaction: disnake.ApplicationCommandInteraction,
     mode: str = commands.Param(autocomplete=autocomplete_proxy_mode),
 ):
+    """Change the Proxy Mode to text provided."""
 
     data = get_data()
     old_mode = data["mode"]
@@ -294,6 +313,7 @@ async def change_proxy_mode(
 
 @tasks.loop(seconds=30)
 async def update_cached_playerlist():
+    """Periodically update the cached Player List."""
     global PLAYER_LIST
     PLAYER_LIST = [
         await convert_uuid_to_username(uuid) for uuid in get_data()["players"]
@@ -305,6 +325,7 @@ async def update_cached_playerlist():
 
 @bot.event
 async def on_ready():
+    """On Ready Function."""
     global PLAYER_LIST
     print(
         "Logged in as {} and in {} guild{}.".format(

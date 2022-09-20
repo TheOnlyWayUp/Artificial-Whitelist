@@ -1,5 +1,10 @@
-def parse_handshake_packet(packet: bytes):
-    # Parse a handshake packet and extract the username and hostname
+"""Module to store Packet Parsers."""
+
+from typing import Dict
+
+
+def parse_handshake_packet(packet: bytes) -> Dict[str, str]:
+    """Parse a handshake packet and extract the username and hostname"""
 
     username = ""
     hostname = ""
@@ -31,7 +36,8 @@ def parse_handshake_packet(packet: bytes):
     return {"username": username, "hostname": hostname}
 
 
-def check_if_packet_c2s_encryption_response(packet: bytes):
+def check_if_packet_c2s_encryption_response(packet: bytes) -> bool:
+    """Check if a packet is the Client->Server Encryption Response Packet."""
     parsed = [_ for _ in packet]
     if [133, 2, 1] != parsed[:3]:
         return False
@@ -41,5 +47,7 @@ def check_if_packet_c2s_encryption_response(packet: bytes):
     return True
 
 
-def check_if_packet_motd_packet(packet: bytes, server_motd: str):
+def check_if_packet_motd_packet(packet: bytes, server_motd: str) -> bool:
+    """Check if a packet is the MOTD Response Packet.
+    This is done by checking if the Server MOTD is in the packet response."""
     return server_motd in packet.decode("latin-1")

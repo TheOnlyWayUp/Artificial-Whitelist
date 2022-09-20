@@ -1,12 +1,11 @@
+"""Request Functions to talk to Proxy Server API and fetch/kick players."""
+
 import asyncio, socket, os, json
 from typing import List, Union
 
-from rich.console import Console
-
-console = Console()
-
 
 async def kick_player(player_uuid: str) -> Union[bool, None]:
+    """Kick a player, returning a boolean success."""
     host, port = os.environ["PROXY_SERVER_API_URL"].split(":")
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((host, int(port)))
@@ -21,6 +20,7 @@ async def kick_player(player_uuid: str) -> Union[bool, None]:
 
 
 async def get_players() -> Union[List[str], None]:
+    """Return a list of all online players, provided by the server. (No Anonymous Users)"""
     host, port = os.environ["PROXY_SERVER_API_URL"].split(":")
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((host, int(port)))

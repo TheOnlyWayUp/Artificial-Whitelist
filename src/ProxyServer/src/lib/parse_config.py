@@ -1,5 +1,7 @@
-import os, json, requests, time
-from typing import List, cast, Dict
+"""Module to make interfacing with the configuration easier."""
+
+import os, json, requests
+from typing import List, cast, Dict, Union
 from enum import Enum
 from mcstatus import JavaServer
 
@@ -32,6 +34,7 @@ USERNAME_TO_UUID_URL = "https://api.mojang.com/users/profiles/minecraft/{}"
 
 headers = {"authorization": API_AUTH_KEY}
 
+# Commented out | This is going to be made a function
 # while True:
 #     try:
 #         MAX_CONTROLLED_PLAYERS = requests.get(
@@ -42,17 +45,22 @@ headers = {"authorization": API_AUTH_KEY}
 #         time.sleep(5)
 
 MOTD = "LiveOverflow Proxy"
+
+# Server MOTD is also going to be made a function
 SERVER_MOTD = cast(
     Dict, JavaServer(SERVER_ADDRESS, SERVER_PORT).status().raw.get("description", {})
 ).get("text", "")
 
 
 class ProxyModeEnum(Enum):
+    """Enum to store valid Proxy Modes."""
+
     whitelist = 1
     blacklist = 2
 
 
 def get_proxy_mode():
+    """Request Configuration API for Proxy Mode."""
     return (
         requests.get(CONFG_API_BASE_URL + "/mode", headers=headers)
         .text.replace('"', "")
@@ -60,15 +68,18 @@ def get_proxy_mode():
     )
 
 
-def convert_uuid_to_username(uuid: str) -> str:
+def convert_uuid_to_username(uuid: str) -> Union[str, None]:
+    """Convert a UUID to a Username through the Mojang API."""
     resp = requests.get(UUID_TO_USERNAME_URL.format(uuid))
     return resp.json().get("name", None)
 
 
-def convert_username_to_uuid(username: str) -> str:
+def convert_username_to_uuid(username: str) -> Union[str, None]:
+    """Convert a Username to a UUID through the Mojang API."""
     resp = requests.get(USERNAME_TO_UUID_URL.format(username))
     return resp.json().get("id", None)
 
 
-def get_player_list() -> List:
+def get_player_list() -> List[str]:
+    """Request the Congfiguration API for the Player List. Returns a list of UUIDs."""
     return requests.get(CONFG_API_BASE_URL + "/players", headers=headers).json()

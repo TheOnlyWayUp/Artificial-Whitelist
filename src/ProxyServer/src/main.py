@@ -1,10 +1,11 @@
+"""Proxy Server Module"""
+
 import json
 import socket, select, time, requests
 from threading import Thread
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Dict, List, Tuple, Union, cast
 from rich.console import Console
-from mcstatus import JavaServer
 
 from lib.parse_config import (
     # LiveOverflow Server Info
@@ -34,7 +35,7 @@ from lib.api_handler import APIHandler
 from lib.parse_packet import (
     parse_handshake_packet,
     check_if_packet_c2s_encryption_response,
-    check_if_packet_motd_packet,
+    # check_if_packet_motd_packet,
 )
 
 console = Console()
@@ -51,17 +52,27 @@ CONNECTED_PLAYERS: Dict[str, str] = {}  # Client UUID: ip_address
 
 
 def log_connection(socket: socket.socket, ip_address: Any):
+    """A silent function to store connections as IP Addresses to sockets."""
     CONNECTIONS[ip_address] = socket
     return True
 
 
 def log_player_connection(username: str, ip_address: Any):
-    CONNECTED_PLAYERS[convert_username_to_uuid(username)] = ip_address
+    """A silent function to store connections as UUIDs to IP Addresses."""
+    uuid = convert_username_to_uuid(username)
+    if not uuid:
+        return
+    CONNECTED_PLAYERS[uuid] = ip_address
     return True
 
 
-def kick_player(uuid: str):
-    return CONNECTIONS.pop(CONNECTED_PLAYERS.pop(uuid))
+def kick_player(uuid: str) -> Union[socket.socket, None]:
+    """A silent function to kick a player from the server.
+    This is done by removing their record in the CONNECTED_PLAYERS Dictionary, which is checked by the proxy."""
+    try:
+        return CONNECTIONS.pop(CONNECTED_PLAYERS.pop(uuid))
+    except:
+        return None
 
 
 # --- Binding to Serve Address --- #
@@ -79,6 +90,7 @@ proxy_api.listen(1)
 
 
 def handle_connection(client: socket.socket, caddr: Tuple):
+    """Connection Handler. This function is called in a newly created thread when a connection is accepted."""
     # https://motoma.io/using-python-to-be-the-man-in-the-middle/
 
     server = socket.socket()
@@ -187,11 +199,13 @@ def handle_connection(client: socket.socket, caddr: Tuple):
 
     if fill_in_on_leave:
         # When the user is authorized, and space is created, this cleanup condition is executed to fill in for them after they leave
+        uuid = cast(str, uuid)  # if fill on leave is set, the UUID must've been grabbed
+
         API_Handler.fill_in(username, CONNECTED_PLAYERS[uuid])
 
     try:
         CONNECTIONS.pop(
-            CONNECTED_PLAYERS.pop(uuid)
+            CONNECTED_PLAYERS.pop(uuid)  # type: ignore | Need this as type checker doesn't notice try except surrounding this function
         )  # Remove user data from connection dictionaries for cleanup
     except:
         pass
@@ -201,6 +215,8 @@ def handle_connection(client: socket.socket, caddr: Tuple):
 
 
 def handle_proxy_api():
+    """Proxy API Runner.
+    Handles actions, validation and responses for the Proxy API."""
     while True:
         sock, addr = proxy_api.accept()
         try:
@@ -248,7 +264,7 @@ if __name__ == "__main__":
 
     RUNNING = True
 
-    def signal_handler(signal, frame):
+    def signal_handler(*_args):
         global RUNNING
         RUNNING = False
         sys.exit(0)

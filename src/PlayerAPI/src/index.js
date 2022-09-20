@@ -23,6 +23,7 @@ let sitting_out = [];
 let usernames_to_bot = {};
 
 app.use(function (req, res, next) {
+    // Middleware to check if Authorization Header matches Auth Key.
     if (req.headers.authorization != EXPRESS_AUTH) {
         return res.status(403).json({ error: 'Forbidden' });
     }
@@ -31,10 +32,12 @@ app.use(function (req, res, next) {
 // https://stackoverflow.com/a/46094495
 
 app.get("/maxlen/", (req, res) => {
+    // Max number of bots that can join the server.
     res.status(200).send({ "MAX_SIZE": credentials.length })
 })
 
 app.get("/join_all/", (req, res) => {
+    // Prompt all the bots to join the server.
     credentials.forEach(account => {
         let username = account.split(":")[0]
         let password = account.split(":")[1]
@@ -58,6 +61,7 @@ app.get("/join_all/", (req, res) => {
 })
 
 app.get("/sit_out", (req, res) => {
+    // Ask a bot to temporarily leave the server, returning a boolean success and the bot's username.
     let username = joined_accounts.pop();
     if (username == undefined) {
         res.status(422).send({ "success": false, "data": { "message": "No bots are filling in!" } })
@@ -77,6 +81,7 @@ app.get("/sit_out", (req, res) => {
 })
 
 app.get("/fill_in", (req, res) => {
+    // Ask a bot sitting out to rejoin the server, returning a boolean success and the bot's username.
     let username = sitting_out.pop()
     if (username == undefined) {
         res.status(422).send({ "success": false, "data": { "message": "No bots are sitting out!" } })
@@ -103,6 +108,7 @@ app.get("/fill_in", (req, res) => {
 })
 
 process.on('SIGTERM', () => {
+    // Graceful shut down
     console.log('SIGTERM received, shutting down...');
     server.close()
     // https://github.com/expressjs/express/issues/1366
