@@ -11,7 +11,9 @@ Components
 User joins the Proxy -> Proxy stores their Username -> Forwards Packets -> Proxy checks whether encryption has been enabled or not (presence of c->s encryption response packet) -> If encrypted, username is exchanged for UUID and checked with Proxy Mode and Player List. -> If player is not allowed, their connection is closed -> Else, a bot is asked to leave for them and the connection is delayed -> Packets continue to be forwarded -> On leave, the bot is asked to rejoin
 
 Simply Put,
+
 ![Image describing join process (simplified)](https://i.imgur.com/u1mqq7s.png)
 
 Flow
+
 ![Flowchart describing what happens during the lifecycle of a connection.](LO-Proxy-Flow.svg)
