@@ -1,5 +1,5 @@
 import os, json, requests, time
-from typing import cast, Dict
+from typing import List, cast, Dict
 from enum import Enum
 from mcstatus import JavaServer
 
@@ -11,12 +11,16 @@ with open(PROXY_CONFIG_PATH) as config_file:
     config = json.load(config_file)
 
 _PROXY_CONFIG = config["proxy"]
+_API_CONFIG = config["api"]
 
 BIND_ADDRESS = _PROXY_CONFIG["bind"]["address"]
 BIND_PORT = _PROXY_CONFIG["bind"]["port"]
 
 SERVER_ADDRESS = _PROXY_CONFIG["proxy_to"]["address"]
 SERVER_PORT = _PROXY_CONFIG["proxy_to"]["port"]
+
+PROXY_API_ADDRESS = _API_CONFIG["bind"]["address"]
+PROXY_API_PORT = _API_CONFIG["bind"]["port"]
 
 PLAYER_API_BASE_URL = os.environ["PLAYER_API_URL"]
 STATS_API_BASE_URL = os.environ["STATS_API_URL"]
@@ -56,15 +60,15 @@ def get_proxy_mode():
     )
 
 
-def convert_uuid_to_username(uuid: str):
+def convert_uuid_to_username(uuid: str) -> str:
     resp = requests.get(UUID_TO_USERNAME_URL.format(uuid))
     return resp.json().get("name", None)
 
 
-def convert_username_to_uuid(username: str):
+def convert_username_to_uuid(username: str) -> str:
     resp = requests.get(USERNAME_TO_UUID_URL.format(username))
     return resp.json().get("id", None)
 
 
-def get_player_list():
+def get_player_list() -> List:
     return requests.get(CONFG_API_BASE_URL + "/players", headers=headers).json()

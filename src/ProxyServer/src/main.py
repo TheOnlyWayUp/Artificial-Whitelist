@@ -1,3 +1,4 @@
+import json
 import socket, select, time, requests
 from threading import Thread
 from concurrent.futures import ThreadPoolExecutor
@@ -23,8 +24,11 @@ from lib.parse_config import (
     # Proxy Configuration Data
     get_proxy_mode,
     get_player_list,
-    convert_uuid_to_username,
+    # username->uuid api
     convert_username_to_uuid,
+    # proxy api (for kick functionality)
+    PROXY_API_ADDRESS,
+    PROXY_API_PORT,
 )
 from lib.api_handler import APIHandler
 from lib.parse_packet import (
@@ -43,7 +47,7 @@ API_Handler = APIHandler(
 # --- Logging Connection Data --- #
 
 CONNECTIONS: Dict[str, socket.socket] = {}  # Client ip_address: socket
-CONNECTED_PLAYERS: Dict[str, str] = {}  # Client Username: ip_address
+CONNECTED_PLAYERS: Dict[str, str] = {}  # Client UUID: ip_address
 
 
 def log_connection(socket: socket.socket, ip_address: Any):
@@ -52,8 +56,12 @@ def log_connection(socket: socket.socket, ip_address: Any):
 
 
 def log_player_connection(username: str, ip_address: Any):
-    CONNECTED_PLAYERS[username] = ip_address
+    CONNECTED_PLAYERS[convert_username_to_uuid(username)] = ip_address
     return True
+
+
+def kick_player(uuid: str):
+    return CONNECTIONS.pop(CONNECTED_PLAYERS.pop(uuid)).close()
 
 
 # --- Binding to Serve Address --- #
@@ -61,6 +69,10 @@ def log_player_connection(username: str, ip_address: Any):
 listener = socket.socket()
 listener.bind((BIND_ADDRESS, BIND_PORT))
 listener.listen(1)
+
+proxy_api = socket.socket()
+proxy_api.bind((PROXY_API_ADDRESS, PROXY_API_PORT))
+proxy_api.listen(1)
 
 
 # --- Connection Handler --- #
@@ -75,6 +87,7 @@ def handle_connection(client: socket.socket, caddr: Tuple):
     running = True
     encryption_started = False
     username = ""
+    uuid = ""
     fill_in_on_leave = False
     completed_check = False
     motd_sent = False
@@ -117,9 +130,7 @@ def handle_connection(client: socket.socket, caddr: Tuple):
 
                             elif proxy_mode == "whitelist" and player_in_list:
                                 # if the user is whitelisted
-                                API_Handler.sit_out(
-                                    username, CONNECTED_PLAYERS[username]
-                                )
+                                API_Handler.sit_out(username, CONNECTED_PLAYERS[uuid])
                                 time.sleep(3)
                                 fill_in_on_leave = True
 
@@ -129,9 +140,7 @@ def handle_connection(client: socket.socket, caddr: Tuple):
 
                             elif proxy_mode == "blacklist" and not player_in_list:
                                 # if user not blacklisted
-                                API_Handler.sit_out(
-                                    username, CONNECTED_PLAYERS[username]
-                                )
+                                API_Handler.sit_out(username, CONNECTED_PLAYERS[uuid])
                                 time.sleep(3)
                                 fill_in_on_leave = True
 
@@ -173,14 +182,51 @@ def handle_connection(client: socket.socket, caddr: Tuple):
 
     if fill_in_on_leave:
         # When the user is authorized, and space is created, this cleanup condition is executed to fill in for them after they leave
-        API_Handler.fill_in(username, CONNECTED_PLAYERS[username])
+        API_Handler.fill_in(username, CONNECTED_PLAYERS[uuid])
 
     try:
         CONNECTIONS.pop(
-            CONNECTED_PLAYERS.pop(username)
+            CONNECTED_PLAYERS.pop(uuid)
         )  # Remove user data from connection dictionaries for cleanup
     except:
         pass
+
+
+# --- Proxy API (for kick functionality) --- #
+
+
+def handle_proxy_api():
+    while True:
+        sock, addr = proxy_api.accept()
+        try:
+            data = json.loads(sock.recv(1024).decode())
+            # example:
+            # {"auth": "", "action": "kick", "uuid": ""}
+            if data["auth"] != API_AUTH_KEY:
+                raise Exception("403")
+            if data["action"] not in ["kick", "online"]:
+                raise Exception("422")
+
+            if data["action"] == "kick":
+                try:
+                    kick_player(data["uuid"])
+                    sock.send(json.dumps({"success": True}).encode())
+                except:
+                    sock.send(json.dumps({"success": False}).encode())
+                    raise Exception("500")
+            elif data["action"] == "online":
+                try:
+                    sock.send(
+                        json.dumps(
+                            {"success": True, "players": list(CONNECTED_PLAYERS.keys())}
+                        ).encode()
+                    )
+                except:
+                    sock.send(json.dumps({"success": False, "players": []}).encode())
+
+        except:
+            sock.send(json.dumps({"success": False}).encode())
+        sock.close()
 
 
 # --- Running --- #
@@ -189,6 +235,10 @@ executor = ThreadPoolExecutor(
 )  # make this MAX_CONTROLLED_PLAYERS when it's no longer unused by motd
 
 if __name__ == "__main__":
+    t = Thread(target=handle_proxy_api)
+    t.setDaemon(True)
+    t.start()
+
     import sys, signal
 
     RUNNING = True
@@ -221,6 +271,5 @@ if __name__ == "__main__":
                 ...
 
         future = executor.submit(run)
-        # t = Thread(target=run)
-        # t.setDaemon(True)
-        # t.start()
+
+    # ---- #

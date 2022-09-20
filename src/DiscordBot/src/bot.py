@@ -8,6 +8,7 @@ from config import (
     convert_username_to_uuid,
     convert_uuid_to_username,
 )
+from proxy_server_api import kick_player, get_players
 from typing import cast
 
 bot = commands.InteractionBot(test_guilds=BOT_CONFIG["guilds"])
@@ -35,6 +36,67 @@ async def moderator_check(interaction: disnake.ApplicationCommandInteraction):
         )
         return False
     return True
+
+
+# --- #
+
+
+async def autocomplete_online_players(
+    interaction: disnake.ApplicationCommandInteraction, string: str
+):
+    roles = [role.id for role in cast(disnake.Member, interaction.author).roles]
+
+    allowed = False
+    for moderator_role_id in BOT_CONFIG["moderator_roles"]:
+        if moderator_role_id in roles:
+            allowed = True
+            break
+    if not allowed:
+        return ["403"]
+
+    players = await get_players()
+    if not players:
+        return []
+    return [await convert_uuid_to_username(uuid) for uuid in players]
+
+
+@bot.slash_command(
+    name="kick", description="Kick a player from the server.", dm_permission=False
+)
+async def kick_cmd(
+    interaction: disnake.ApplicationCommandInteraction,
+    username: str = commands.Param(
+        description="Username of the Player",
+        min_length=3,
+        max_length=16,
+        autocomplete=autocomplete_online_players,
+    ),
+):
+    uuid = await convert_username_to_uuid(username)
+    if not uuid:
+        return await interaction.send(
+            embed=disnake.Embed(
+                title="Error",
+                description="Username is invalid.",
+                color=disnake.Color.dark_red(),
+            ),
+            ephemeral=True,
+        )
+
+    success = await kick_player(uuid)
+    return await interaction.send(
+        embed=disnake.Embed(
+            title="Player Kicked" if success else "Failed",
+            description="Kicking the player {}".format(
+                "succeeded" if success else "failed"
+            ),
+            color=disnake.Color.dark_green() if success else disnake.Color.dark_red(),
+        ),
+        ephemeral=True,
+    )
+
+
+# --- #
 
 
 @bot.slash_command(
