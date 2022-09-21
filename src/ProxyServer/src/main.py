@@ -1,7 +1,6 @@
 """Proxy Server Module"""
 
-import json
-import socket, select, time, requests
+import json, asyncio, socket, select, time
 from threading import Thread
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Dict, List, Tuple, Union, cast
@@ -62,6 +61,7 @@ def log_player_connection(username: str, ip_address: Any):
     uuid = convert_username_to_uuid(username)
     if not uuid:
         return
+    uuid = cast(str, uuid)
     CONNECTED_PLAYERS[uuid] = ip_address
     return True
 
@@ -81,15 +81,11 @@ listener = socket.socket()
 listener.bind((BIND_ADDRESS, BIND_PORT))
 listener.listen(1)
 
-proxy_api = socket.socket()
-proxy_api.bind((PROXY_API_ADDRESS, PROXY_API_PORT))
-proxy_api.listen(1)
-
 
 # --- Connection Handler --- #
 
 
-def handle_connection(client: socket.socket, caddr: Tuple):
+async def handle_connection(client: socket.socket, caddr: Tuple):
     """Connection Handler. This function is called in a newly created thread when a connection is accepted."""
     # https://motoma.io/using-python-to-be-the-man-in-the-middle/
 
@@ -123,17 +119,19 @@ def handle_connection(client: socket.socket, caddr: Tuple):
                         # If encryption has started
                         encryption_started = True
 
-                        proxy_mode = get_proxy_mode()
-                        uuid_list = get_player_list()
+                        proxy_mode = await get_proxy_mode()
+                        uuid_list = await get_player_list()
+
+                        console.log(proxy_mode, uuid_list, username)
 
                         if username:
                             uuid = convert_username_to_uuid(username)
                             if not uuid:
                                 running = False
                                 continue
+                            uuid = cast(str, uuid)
 
                             log_player_connection(username, caddr)
-                            # if the username has been grabbed
                             player_in_list = False
 
                             for _uuid in uuid_list:
@@ -141,13 +139,17 @@ def handle_connection(client: socket.socket, caddr: Tuple):
                                     player_in_list = True
                                     break
 
+                            uuid = cast(str, uuid)
+
                             if proxy_mode == "blacklist" and player_in_list:
                                 # if the user is blacklisted
                                 running = False
 
                             elif proxy_mode == "whitelist" and player_in_list:
                                 # if the user is whitelisted
-                                API_Handler.sit_out(username, CONNECTED_PLAYERS[uuid])
+                                await API_Handler.sit_out(
+                                    username, CONNECTED_PLAYERS[uuid]
+                                )
                                 time.sleep(3)
                                 fill_in_on_leave = True
 
@@ -157,7 +159,9 @@ def handle_connection(client: socket.socket, caddr: Tuple):
 
                             elif proxy_mode == "blacklist" and not player_in_list:
                                 # if user not blacklisted
-                                API_Handler.sit_out(username, CONNECTED_PLAYERS[uuid])
+                                await API_Handler.sit_out(
+                                    username, CONNECTED_PLAYERS[uuid]
+                                )
                                 time.sleep(3)
                                 fill_in_on_leave = True
 
@@ -197,32 +201,29 @@ def handle_connection(client: socket.socket, caddr: Tuple):
     except:
         pass
 
+    assert type(uuid) is str
+
     if fill_in_on_leave:
-        # When the user is authorized, and space is created, this cleanup condition is executed to fill in for them after they leave
-        uuid = cast(str, uuid)  # if fill on leave is set, the UUID must've been grabbed
+        await API_Handler.fill_in(username, CONNECTED_PLAYERS[uuid])
 
-        API_Handler.fill_in(username, CONNECTED_PLAYERS[uuid])
-
-    try:
-        CONNECTIONS.pop(
-            CONNECTED_PLAYERS.pop(uuid)  # type: ignore | Need this as type checker doesn't notice try except surrounding this function
-        )  # Remove user data from connection dictionaries for cleanup
-    except:
+    if uuid:
+        CONNECTIONS.pop(CONNECTED_PLAYERS.pop(uuid))
+    else:
         pass
 
 
 # --- Proxy API (for kick functionality) --- #
 
 
-def handle_proxy_api():
-    """Proxy API Runner.
-    Handles actions, validation and responses for the Proxy API."""
-    while True:
-        sock, addr = proxy_api.accept()
+class HandleProxyAPI(asyncio.Protocol):
+    def connection_made(self, transport):
+        self.transport = transport
+
+    def data_received(self, data):
+        message = data.decode()
         try:
-            data = json.loads(sock.recv(1024).decode())
-            # example:
-            # {"auth": "", "action": "kick", "uuid": ""}
+            data = json.loads(message)  # ex: {"auth": "", "action": "kick", "uuid": ""}
+
             if data["auth"] != API_AUTH_KEY:
                 raise Exception("403")
             if data["action"] not in ["kick", "online"]:
@@ -231,66 +232,76 @@ def handle_proxy_api():
             if data["action"] == "kick":
                 try:
                     kick_player(data["uuid"])
-                    sock.send(json.dumps({"success": True}).encode())
-                except Exception as e:
-                    sock.send(json.dumps({"success": False}).encode())
+                    self.transport.write(json.dumps({"success": True}).encode())
+                except Exception:
+                    self.transport.write(json.dumps({"success": False}).encode())
                     raise Exception("500")
             elif data["action"] == "online":
                 try:
-                    sock.send(
+                    self.transport.write(
                         json.dumps(
                             {"success": True, "players": list(CONNECTED_PLAYERS.keys())}
                         ).encode()
                     )
-                except Exception as e:
-                    sock.send(json.dumps({"success": False, "players": []}).encode())
+                except Exception:
+                    self.transport.write(
+                        json.dumps({"success": False, "players": []}).encode()
+                    )
 
         except:
-            sock.send(json.dumps({"success": False}).encode())
-        sock.close()
+            self.transport.write(json.dumps({"success": False}).encode())
+
+        self.transport.close()
 
 
-# --- Running --- #
-executor = ThreadPoolExecutor(
-    5
-)  # make this MAX_CONTROLLED_PLAYERS when it's no longer unused by motd
+async def handle_proxy_api():
+    """Proxy API Runner.
+    Handles actions, validation and responses for the Proxy API."""
+    loop = asyncio.get_running_loop()
 
-if __name__ == "__main__":
-    t = Thread(target=handle_proxy_api)
+    server = await loop.create_server(
+        lambda: HandleProxyAPI(), PROXY_API_ADDRESS, PROXY_API_PORT
+    )
+
+    async with server:
+        await server.serve_forever()
+
+
+def run_proxy_api():
+    asyncio.run(handle_proxy_api())
+
+
+# --- #
+
+
+async def run_proxy_server():
+    """Proxy Server Runner."""
+
+    async def run_and_clean():
+        asyncio.ensure_future(handle_connection(*lner))
+        CONNECTIONS.pop(lner[1])
+
+    while True:
+        lner = listener.accept()
+        log_connection(*lner)
+        await asyncio.ensure_future(run_and_clean())
+
+
+# --- #
+
+
+async def main():
+    t = Thread(target=run_proxy_api)
     t.setDaemon(True)
     t.start()
 
-    import sys, signal
+    await asyncio.ensure_future(run_proxy_server())
 
-    RUNNING = True
 
-    def signal_handler(*_args):
-        global RUNNING
-        RUNNING = False
-        sys.exit(0)
+# --- Running --- #
 
-    signal.signal(signal.SIGINT, signal_handler)
-
-    join_all_resp = requests.get(PLAYER_API_BASE_URL + "/join_all")
+if __name__ == "__main__":
     console.log("[App] - Starting")
-
-    while RUNNING:
-        lner = listener.accept()
-        log_connection(*lner)
-
-        def run():
-            try:
-                console.log("Handling Connection")
-                handle_connection(*lner)
-            except Exception as exc:
-                console.log(exc)
-                ...
-
-            try:
-                CONNECTIONS.pop(lner[1])
-            except:
-                ...
-
-        future = executor.submit(run)
+    asyncio.run(main())
 
     # ---- #

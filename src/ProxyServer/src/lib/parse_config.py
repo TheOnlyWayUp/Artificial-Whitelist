@@ -1,6 +1,6 @@
 """Module to make interfacing with the configuration easier."""
 
-import os, json, requests
+import os, json, aiohttp
 from typing import List, cast, Dict, Union
 from enum import Enum
 from mcstatus import JavaServer
@@ -59,27 +59,45 @@ class ProxyModeEnum(Enum):
     blacklist = 2
 
 
-def get_proxy_mode():
+async def get_proxy_mode():
     """Request Configuration API for Proxy Mode."""
-    return (
-        requests.get(CONFG_API_BASE_URL + "/mode", headers=headers)
-        .text.replace('"', "")
-        .replace("'", "")
-    )
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(
+            CONFG_API_BASE_URL + "/mode", headers=headers
+        ) as response:
+            data = await response.text()
+            players = data.replace('"', "").replace("'", "")
+    return players
 
 
-def convert_uuid_to_username(uuid: str) -> Union[str, None]:
+async def convert_uuid_to_username(uuid: str) -> Union[str, None]:
     """Convert a UUID to a Username through the Mojang API."""
-    resp = requests.get(UUID_TO_USERNAME_URL.format(uuid))
-    return resp.json().get("name", None)
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(
+            UUID_TO_USERNAME_URL.format(uuid), headers=headers
+        ) as response:
+            data = await response.json()
+    return data.get("name", None)
 
 
-def convert_username_to_uuid(username: str) -> Union[str, None]:
+async def convert_username_to_uuid(username: str) -> Union[str, None]:
     """Convert a Username to a UUID through the Mojang API."""
-    resp = requests.get(USERNAME_TO_UUID_URL.format(username))
-    return resp.json().get("id", None)
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(
+            USERNAME_TO_UUID_URL.format(username), headers=headers
+        ) as response:
+            data = await response.json()
+    return data.get("id", None)
 
 
-def get_player_list() -> List[str]:
+async def get_player_list() -> List[str]:
     """Request the Congfiguration API for the Player List. Returns a list of UUIDs."""
-    return requests.get(CONFG_API_BASE_URL + "/players", headers=headers).json()
+    async with aiohttp.ClientSession() as session:
+        async with session.get(
+            CONFG_API_BASE_URL + "/players", headers=headers
+        ) as response:
+            data = await response.json()
+    return data
