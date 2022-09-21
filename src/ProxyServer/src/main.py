@@ -102,13 +102,13 @@ async def handle_connection(client: socket.socket, caddr: Tuple):
 
     while running:
         try:
-            rlist = select.select([client, server], [], [])[0]
+            ready_to_read = select.select([client, server], [], [])[0]
 
             if uuid:
                 if uuid not in CONNECTED_PLAYERS:
                     running = False
 
-            if client in rlist:
+            if client in ready_to_read:
                 buf = client.recv(32767)
 
                 if len(buf) == 0:
@@ -180,7 +180,7 @@ async def handle_connection(client: socket.socket, caddr: Tuple):
 
                 server.send(buf)
 
-            if server in rlist and running:
+            if server in ready_to_read and running:
                 buf = server.recv(32767)
                 if len(buf) == 0:
                     running = False
