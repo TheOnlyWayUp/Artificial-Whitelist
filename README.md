@@ -1,3 +1,22 @@
+Minecraft Artificial Whitelist
+---
+Leverage multiple user accounts to:
+- Enforce an artificial whitelist on a server, join via a proxy
+- Reserve a spot on busy servers
+- Prevent malicious users from joining (This was our usecase on the LiveOverflow LetsPlay Server)
+
+## Includes
+- Discord bot, for whitelisting/blacklisting users, and over-all management
+- Developer-friendly APIs for Statistics and the Player Manager, so you can control it programmatically via your code as well
+- Minecraft proxy server, allowing seamless usage for end users
+
+Supports docker-compose. Up in one command.
+
+Code is a performant, function POC, developed under tight time-constraints.
+
+---
+
+
 LiveOverflow Server Proxy
 ------------
 A project that enforces a sort of 'artificial whitelist' on the LiveOverflow Server, allowing the user to enforce a blacklist/whitelist.
